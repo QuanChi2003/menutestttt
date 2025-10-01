@@ -19,14 +19,9 @@
     "postcss": "8.4.38"
   },
   "devDependencies": {
-    "typescript": "5.5.4"
-  }
-  {
-  "devDependencies": {
     "typescript": "5.5.4",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
     "@types/node": "20.14.10"
   }
-}
 }
