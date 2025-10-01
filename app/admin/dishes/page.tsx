@@ -2,59 +2,131 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
 
+// format: "1000000" -> "1.000.000"
+function toVNDInput(value: string) {
+  const digits = value.replace(/\D/g, '')
+  if (!digits) return ''
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+}
+// parse: "1.000.000" -> 1000000 (number)
+function parseVND(text: string) {
+  const n = text.replace(/\./g, '')
+  return Number(n || 0)
+}
+
 export default function DishesAdmin() {
-  const [list, setList] = useState<any[]>([])
-  const [form, setForm] = useState<any>({ name:'', price:0, category:'', is_available:true, image_url:'' })
+  const [dishes, setDishes] = useState<any[]>([])
+  const [name, setName] = useState('')
+  const [priceText, setPriceText] = useState('') // giữ dạng có chấm
+  const [imageUrl, setImageUrl] = useState('')
+  const [category, setCategory] = useState('')
+  const [isAvailable, setIsAvailable] = useState(true)
+  const [loading, setLoading] = useState(false)
 
   async function load() {
-    const { data, error } = await supabase.from('dishes').select('*').order('created_at', { ascending:false })
-    if (error) console.error(error)
-    setList(data||[])
+    const { data } = await supabase.from('dishes').select('*').order('created_at', { ascending: false })
+    setDishes(data || [])
   }
-  useEffect(()=>{ load() }, [])
+  useEffect(() => { load() }, [])
 
-  async function save() {
-    if (!form.name || !form.price) return alert('Nhập tên và giá')
-    const { error } = await supabase.from('dishes').insert([{ ...form }])
+  async function addDish(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim()) return alert('Nhập tên món')
+    const price = parseVND(priceText)
+    if (!price) return alert('Giá phải > 0')
+
+    setLoading(true)
+    const { error } = await supabase.from('dishes').insert({
+      name: name.trim(),
+      price, // lưu integer
+      image_url: imageUrl || null,
+      category: category || null,
+      is_available: isAvailable
+    })
+    setLoading(false)
     if (error) return alert(error.message)
-    setForm({ name:'', price:0, category:'', is_available:true, image_url:'' })
+
+    // reset form + reload
+    setName(''); setPriceText(''); setImageUrl(''); setCategory(''); setIsAvailable(true)
     load()
   }
 
-  async function remove(id:string) {
-    if (!confirm('Xóa món?')) return
+  async function removeDish(id: string) {
+    if (!confirm('Xóa món này?')) return
     const { error } = await supabase.from('dishes').delete().eq('id', id)
     if (error) return alert(error.message)
     load()
   }
 
   return (
-    <div className="grid md:grid-cols-3 gap-6">
-      <div className="card p-4 space-y-3">
-        <h2 className="text-xl font-semibold">Thêm món</h2>
-        <input className="border rounded px-3 py-2 w-full" placeholder="Tên món" value={form.name} onChange={e=>setForm({...form, name:e.target.value})} />
-        <input type="number" className="border rounded px-3 py-2 w-full" placeholder="Giá" value={form.price} onChange={e=>setForm({...form, price:parseInt(e.target.value)||0})} />
-        <input className="border rounded px-3 py-2 w-full" placeholder="Loại" value={form.category} onChange={e=>setForm({...form, category:e.target.value})} />
-        <input className="border rounded px-3 py-2 w-full" placeholder="Ảnh (URL)" value={form.image_url} onChange={e=>setForm({...form, image_url:e.target.value})} />
-        <label className="flex items-center gap-2">
-          <input type="checkbox" checked={form.is_available} onChange={e=>setForm({...form, is_available:e.target.checked})} />
-          Đang bán
-        </label>
-        <button className="btn w-full" onClick={save}>Lưu</button>
+    <div className="grid md:grid-cols-2 gap-6">
+      {/* Form thêm món */}
+      <div className="card p-4">
+        <h2 className="text-xl font-semibold mb-3">Thêm món</h2>
+        <form className="space-y-3" onSubmit={addDish}>
+          <input
+            className="border rounded px-3 py-2 w-full"
+            placeholder="Tên món"
+            value={name}
+            onChange={e => setName(e.target.value)}
+          />
+          <input
+            className="border rounded px-3 py-2 w-full"
+            inputMode="numeric"
+            placeholder="0.000.000"
+            value={priceText}
+            onChange={e => setPriceText(toVNDInput(e.target.value))}
+          />
+          <input
+            className="border rounded px-3 py-2 w-full"
+            placeholder="Link ảnh (tùy chọn)"
+            value={imageUrl}
+            onChange={e => setImageUrl(e.target.value)}
+          />
+          <input
+            className="border rounded px-3 py-2 w-full"
+            placeholder="Danh mục (tùy chọn)"
+            value={category}
+            onChange={e => setCategory(e.target.value)}
+          />
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={isAvailable} onChange={e => setIsAvailable(e.target.checked)} />
+            Hiển thị trong menu
+          </label>
+          <button className="btn" disabled={loading}>
+            {loading ? 'Đang lưu…' : 'Thêm món'}
+          </button>
+        </form>
       </div>
 
-      <div className="md:col-span-2 card p-4">
+      {/* Danh sách món */}
+      <div className="card p-4">
         <h2 className="text-xl font-semibold mb-3">Danh sách món</h2>
-        <div className="space-y-2">
-          {list.map(d=>(
-            <div key={d.id} className="flex items-center gap-3 border-b py-2">
-              <div className="flex-1">
-                <div className="font-medium">{d.name} · {d.price.toLocaleString()}đ</div>
-                <div className="text-sm text-leaf-700">{d.category} {d.is_available ? '• Đang bán' : '• Ngừng'}</div>
+        <div className="space-y-3">
+          {dishes.map(d => (
+            <div key={d.id} className="border rounded p-3 flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-medium">{d.name}</div>
+                <div className="text-sm text-leaf-700">
+                  {Number(d.price).toLocaleString('vi-VN')}đ
+                  {d.category ? ` • ${d.category}` : ''}
+                  {!d.is_available ? ' • (ẩn)' : ''}
+                </div>
               </div>
-              <button className="btn" onClick={()=>remove(d.id)}>Xóa</button>
+              <div className="flex items-center gap-2">
+                <a
+                  href={d.image_url || '#'}
+                  target="_blank"
+                  className="text-sm underline"
+                  rel="noreferrer"
+                >
+                  Ảnh
+                </a>
+                <button className="btn" onClick={() => removeDish(d.id)}>Xóa</button>
+              </div>
             </div>
           ))}
+          {!dishes.length && <div className="text-sm text-leaf-700">Chưa có món nào.</div>}
         </div>
       </div>
     </div>
