@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import BackButton from '@/components/BackButton'
 
 export default function CartPage() {
   const [cart, setCart] = useState<any[]>([])
@@ -37,15 +38,23 @@ export default function CartPage() {
   return (
     <div className="grid md:grid-cols-3 gap-6">
       <div className="md:col-span-2 card p-4">
-        <h2 className="text-xl font-semibold mb-3">Giỏ hàng</h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xl font-semibold">Giỏ hàng</h2>
+          <BackButton fallback="/" />
+        </div>
+
         {cart.length===0 ? <div>Chưa có món nào.</div> : cart.map(i=>(
           <div key={i.id} className="flex items-center gap-3 py-2 border-b">
             <div className="font-medium flex-1">{i.name}</div>
-            <input type="number" min={1} value={i.qty} onChange={e=>updateQty(i.id, parseInt(e.target.value)||1)} className="w-16 border rounded px-2 py-1" />
-            <div className="w-24 text-right">{(i.price*i.qty).toLocaleString()}đ</div>
+            <input
+              type="number" min={1} value={i.qty}
+              onChange={e=>updateQty(i.id, parseInt(e.target.value)||1)}
+              className="w-16 border rounded px-2 py-1"
+            />
+            <div className="w-24 text-right">{(i.price*i.qty).toLocaleString('vi-VN')}đ</div>
           </div>
         ))}
-        <div className="text-right font-bold mt-3">Tổng: {total.toLocaleString()}đ</div>
+        <div className="text-right font-bold mt-3">Tổng: {total.toLocaleString('vi-VN')}đ</div>
       </div>
 
       <div className="card p-4 space-y-3">
