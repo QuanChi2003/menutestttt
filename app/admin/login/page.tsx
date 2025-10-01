@@ -52,7 +52,7 @@ export default function AdminLoginPage() {
           {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
         </button>
       </form>
-      <p className="text-xs text-leaf-700 mt-3">Gợi ý hiện tại: admin / admin</p>
+      <p className="text-xs text-leaf-700 mt-3">Vui lòng đăng nhập để tiếp tục!</p>
     </div>
   )
 }
