@@ -1,5 +1,6 @@
 import './globals.css'
 import { ReactNode } from 'react'
+import { Toaster } from 'react-hot-toast'   // 👈 import Toaster
 
 export const metadata = {
   title: 'Beer Cầu Gẫy',
@@ -19,10 +20,17 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             </nav>
           </div>
         </header>
+
         <main className="max-w-5xl mx-auto px-4 py-6">
           {children}
         </main>
-        <footer className="text-center text-sm text-leaf-700 pb-8">© {new Date().getFullYear()} Beer Cầu Gẫy</footer>
+
+        <footer className="text-center text-sm text-leaf-700 pb-8">
+          © {new Date().getFullYear()} Beer Cầu Gẫy
+        </footer>
+
+        {/* 👇 chèn Toaster để hiện toast */}
+        <Toaster position="top-center" />
       </body>
     </html>
   )
