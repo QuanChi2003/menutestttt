@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabaseClient'
+import toast from 'react-hot-toast' // 👈 thêm toast
 
 // Thêm type union cho trạng thái để khớp với DB
 const STATUSES = ['new','preparing','done','cancelled'] as const
@@ -16,7 +17,10 @@ export default function OrdersAdmin() {
       .select('*')
       .order('created_at', { ascending:false })
       .limit(50)
-    if (error) console.error(error)
+    if (error) {
+      console.error(error)
+      toast.error(error.message)
+    }
     setOrders(ord||[])
 
     const ids = (ord||[]).map(o=>o.id)
@@ -25,7 +29,10 @@ export default function OrdersAdmin() {
         .from('order_items')
         .select('*')
         .in('order_id', ids)
-      if (e2) console.error(e2)
+      if (e2) {
+        console.error(e2)
+        toast.error(e2.message)
+      }
       const map: Record<string, any[]> = {}
       ;(it||[]).forEach(x=>{
         map[x.order_id] = map[x.order_id] || []
@@ -46,8 +53,15 @@ export default function OrdersAdmin() {
 
   // Sửa kiểu 'status' thành union Status
   async function updateStatus(id: string, status: Status) {
-    const { error } = await supabase.from('orders').update({ status }).eq('id', id)
-    if (error) alert(error.message)
+    const { error } = await supabase
+      .from('orders')
+      .update({ status })
+      .eq('id', id)
+    if (error) {
+      toast.error(error.message)
+    } else {
+      toast.success('Đã cập nhật trạng thái')
+    }
   }
 
   return (
@@ -74,13 +88,13 @@ export default function OrdersAdmin() {
               </select>
             </div>
 
-            <div className="text-sm text-leaf-700">{new Date(o.created_at).toLocaleString()}</div>
+            <div className="text-sm text-leaf-700">{new Date(o.created_at).toLocaleString('vi-VN')}</div>
             <ul className="list-disc pl-6 my-2">
               {(itemsByOrder[o.id]||[]).map(i=>(
-                <li key={i.id}>{i.qty} × {i.dish_id} — {(i.price*i.qty).toLocaleString()}đ</li>
+                <li key={i.id}>{i.qty} × {i.dish_id} — {(i.price*i.qty).toLocaleString('vi-VN')}đ</li>
               ))}
             </ul>
-            <div className="font-bold text-right">Tổng: {o.total.toLocaleString()}đ</div>
+            <div className="font-bold text-right">Tổng: {o.total.toLocaleString('vi-VN')}đ</div>
           </div>
         ))}
       </div>
