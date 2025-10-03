@@ -16,38 +16,52 @@ function parseVND(text: string) {
 
 export default function DishesAdmin() {
   const [dishes, setDishes] = useState<any[]>([])
+
+  // Form state
   const [name, setName] = useState('')
-  const [priceText, setPriceText] = useState('') // giữ dạng có chấm
+  const [salePriceText, setSalePriceText] = useState('')
+  const [costPriceText, setCostPriceText] = useState('')
   const [imageUrl, setImageUrl] = useState('')
   const [category, setCategory] = useState('')
   const [isAvailable, setIsAvailable] = useState(true)
   const [loading, setLoading] = useState(false)
 
   async function load() {
-    const { data } = await supabase.from('dishes').select('*').order('created_at', { ascending: false })
+    const { data } = await supabase
+      .from('dishes')
+      .select('*')
+      .order('created_at', { ascending: false })
     setDishes(data || [])
   }
+
   useEffect(() => { load() }, [])
 
   async function addDish(e: React.FormEvent) {
     e.preventDefault()
     if (!name.trim()) return alert('Nhập tên món')
-    const price = parseVND(priceText)
-    if (!price) return alert('Giá phải > 0')
+    const sale_price = parseVND(salePriceText)
+    const cost_price = parseVND(costPriceText)
+    if (!sale_price) return alert('Giá bán phải > 0')
 
     setLoading(true)
     const { error } = await supabase.from('dishes').insert({
       name: name.trim(),
-      price, // lưu integer
+      sale_price,
+      cost_price,
       image_url: imageUrl || null,
       category: category || null,
-      is_available: isAvailable
+      is_available: isAvailable,
     })
     setLoading(false)
     if (error) return alert(error.message)
 
-    // reset form + reload
-    setName(''); setPriceText(''); setImageUrl(''); setCategory(''); setIsAvailable(true)
+    // Reset form + reload
+    setName('')
+    setSalePriceText('')
+    setCostPriceText('')
+    setImageUrl('')
+    setCategory('')
+    setIsAvailable(true)
     load()
   }
 
@@ -73,9 +87,16 @@ export default function DishesAdmin() {
           <input
             className="border rounded px-3 py-2 w-full"
             inputMode="numeric"
-            placeholder="0.000.000"
-            value={priceText}
-            onChange={e => setPriceText(toVNDInput(e.target.value))}
+            placeholder="Giá bán (VD: 25.000)"
+            value={salePriceText}
+            onChange={e => setSalePriceText(toVNDInput(e.target.value))}
+          />
+          <input
+            className="border rounded px-3 py-2 w-full"
+            inputMode="numeric"
+            placeholder="Giá gốc (VD: 15.000)"
+            value={costPriceText}
+            onChange={e => setCostPriceText(toVNDInput(e.target.value))}
           />
           <input
             className="border rounded px-3 py-2 w-full"
@@ -90,7 +111,11 @@ export default function DishesAdmin() {
             onChange={e => setCategory(e.target.value)}
           />
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={isAvailable} onChange={e => setIsAvailable(e.target.checked)} />
+            <input
+              type="checkbox"
+              checked={isAvailable}
+              onChange={e => setIsAvailable(e.target.checked)}
+            />
             Hiển thị trong menu
           </label>
           <button className="btn" disabled={loading}>
@@ -104,13 +129,19 @@ export default function DishesAdmin() {
         <h2 className="text-xl font-semibold mb-3">Danh sách món</h2>
         <div className="space-y-3">
           {dishes.map(d => (
-            <div key={d.id} className="border rounded p-3 flex items-center justify-between gap-3">
+            <div
+              key={d.id}
+              className="border rounded p-3 flex items-center justify-between gap-3"
+            >
               <div className="min-w-0">
                 <div className="font-medium">{d.name}</div>
                 <div className="text-sm text-leaf-700">
-                  {Number(d.price).toLocaleString('vi-VN')}đ
+                  Bán: {Number(d.sale_price).toLocaleString('vi-VN')}đ
                   {d.category ? ` • ${d.category}` : ''}
                   {!d.is_available ? ' • (ẩn)' : ''}
+                </div>
+                <div className="text-xs text-gray-500">
+                  Giá gốc: {Number(d.cost_price).toLocaleString('vi-VN')}đ
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -122,11 +153,15 @@ export default function DishesAdmin() {
                 >
                   Ảnh
                 </a>
-                <button className="btn" onClick={() => removeDish(d.id)}>Xóa</button>
+                <button className="btn" onClick={() => removeDish(d.id)}>
+                  Xóa
+                </button>
               </div>
             </div>
           ))}
-          {!dishes.length && <div className="text-sm text-leaf-700">Chưa có món nào.</div>}
+          {!dishes.length && (
+            <div className="text-sm text-leaf-700">Chưa có món nào.</div>
+          )}
         </div>
       </div>
     </div>
