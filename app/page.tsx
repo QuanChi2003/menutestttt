@@ -24,7 +24,13 @@ export default function Home() {
     const cart = JSON.parse(localStorage.getItem('cart')||'[]')
     const exist = cart.find((c:any)=>c.id===item.id)
     if (exist) exist.qty += item.qty
-    else cart.push({ id: item.id, name: item.name, price: item.price, image_url: item.image_url, qty: item.qty })
+    else cart.push({ 
+  id: item.id, 
+  name: item.name, 
+  price: item.sale_price ?? item.price ?? 0, 
+  image_url: item.image_url, 
+  qty: item.qty 
+})
     localStorage.setItem('cart', JSON.stringify(cart))
     alert('Đã thêm vào giỏ!')
   }
