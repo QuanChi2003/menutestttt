@@ -18,6 +18,8 @@ export default function DishesAdmin() {
   const [dishes, setDishes] = useState<any[]>([])
   const [name, setName] = useState('')
   const [priceText, setPriceText] = useState('') // giữ dạng có chấm
+  const [costPrice, setCostPrice] = useState(0)
+  const [salePrice, setSalePrice] = useState(0)
   const [imageUrl, setImageUrl] = useState('')
   const [category, setCategory] = useState('')
   const [isAvailable, setIsAvailable] = useState(true)
@@ -39,6 +41,8 @@ export default function DishesAdmin() {
     const { error } = await supabase.from('dishes').insert({
       name: name.trim(),
       price, // lưu integer
+      cost_price: costPrice,
+      sale_price: salePrice,
       image_url: imageUrl || null,
       category: category || null,
       is_available: isAvailable
@@ -47,7 +51,7 @@ export default function DishesAdmin() {
     if (error) return alert(error.message)
 
     // reset form + reload
-    setName(''); setPriceText(''); setImageUrl(''); setCategory(''); setIsAvailable(true)
+    setName(''); setPriceText(''); setCostPrice(0); setSalePrice(0); setImageUrl(''); setCategory(''); setIsAvailable(true)
     load()
   }
 
@@ -78,20 +82,19 @@ export default function DishesAdmin() {
             onChange={e => setPriceText(toVNDInput(e.target.value))}
           />
           <input
-  className="border rounded px-3 py-2 w-full"
-  placeholder="Giá gốc (cost)"
-  type="number"
-  value={form.cost_price ?? 0}
-  onChange={e=>setForm({...form, cost_price: Number(e.target.value||0) })}
-/>
-<input
-  className="border rounded px-3 py-2 w-full"
-  placeholder="Giá bán (sale)"
-  type="number"
-  value={form.sale_price ?? 0}
-  onChange={e=>setForm({...form, sale_price: Number(e.target.value||0) })}
-/>
-
+            className="border rounded px-3 py-2 w-full"
+            placeholder="Giá gốc"
+            type="number"
+            value={costPrice}
+            onChange={e => setCostPrice(Number(e.target.value))}
+          />
+          <input
+            className="border rounded px-3 py-2 w-full"
+            placeholder="Giá bán"
+            type="number"
+            value={salePrice}
+            onChange={e => setSalePrice(Number(e.target.value))}
+          />
           <input
             className="border rounded px-3 py-2 w-full"
             placeholder="Link ảnh (tùy chọn)"
