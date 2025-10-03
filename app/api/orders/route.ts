@@ -54,16 +54,46 @@ export async function POST(req: NextRequest) {
   }
 
   // Lưu items
-  const items = cart.map((i: any) => ({
+  // ... giữ nguyên phần tạo order ở trên
+
+// Lấy danh sách món theo tên (bạn đang lưu dish_id = name)
+const dishNames = cart.map((i: any) => i.name)
+const { data: dishRows, error: dishErr } = await supabase
+  .from('dishes')
+  .select('id, name, sale_price, cost_price')
+  .in('name', dishNames)
+if (dishErr) return new NextResponse(dishErr.message, { status: 500 })
+
+const dishMap = new Map<string, { sale: number; cost: number }>()
+;(dishRows || []).forEach((d: any) => {
+  dishMap.set(d.name, {
+    sale: Number(d.sale_price ?? d.price ?? 0),
+    cost: Number(d.cost_price ?? 0),
+  })
+})
+
+// Tạo items với giá tại thời điểm bán
+const items = cart.map((i: any) => {
+  const ref = dishMap.get(i.name) || { sale: Number(i.price || 0), cost: 0 }
+  return {
     order_id: order.id,
-    dish_id: i.name,
+    dish_id: i.name, // bạn đang lưu theo name; nếu đổi sang UUID thì đổi ở đây
     qty: i.qty,
-    price: i.price,
-  }))
-  const { error: e2 } = await supabase.from('order_items').insert(items)
-  if (e2) {
-    return new NextResponse(e2.message, { status: 500 })
+    price: ref.sale, // giữ tương thích cũ
+    sale_price_at_sale: ref.sale,
+    cost_price_at_sale: ref.cost,
   }
+})
+
+const { error: e2 } = await supabase.from('order_items').insert(items)
+if (e2) return new NextResponse(e2.message, { status: 500 })
+
+// Cập nhật lại total theo sale_price_at_sale để chắc chắn
+const totalComputed = items.reduce((s, it) => s + it.qty * (it.sale_price_at_sale || 0), 0)
+await supabase.from('orders').update({ total: totalComputed }).eq('id', order.id)
+
+// ... giữ nguyên phần notify Telegram & return
+
 
   // Soạn thông báo Telegram
   const lines = [
